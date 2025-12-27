@@ -9,8 +9,12 @@ authors = [
 requires-python = ">=3.11"
 dependencies = []
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/math_classifier"]
+
 [project.scripts]
-math-tagger-mlops = "math_tagger_mlops:main"
+math-tagger-mlops = "math_classifier:main"
+
 
 [build-system]
 requires = ["hatchling"]

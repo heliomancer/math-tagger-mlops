@@ -1,10 +1,80 @@
-# Python-generated files
+# --- Python Standard ---
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
 wheels/
-*.egg-info
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual environments
-.venv
+# --- Environments ---
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# --- IDEs ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# --- MLOps & Data ---
+# Data
+data/
+*.csv
+*.json
+*.parquet
+*.h5
+*.hdf5
+
+# Models
+models/
+*.pth
+*.ckpt
+*.pt
+*.pkl
+*.bin
+*.onnx
+*.trt
+*.engine
+
+# --- Tools & Frameworks ---
+# Hydra
+outputs/
+multirun/
+
+# MLflow
+mlruns/
+
+# DVC
+.dvc/cache
+.dvc/tmp
+dvc_storage/
+
+# --- Logs & Plots ---
+logs/
+plots/*
+!plots/.gitkeep
+
+# --- Testing & Quality ---
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
