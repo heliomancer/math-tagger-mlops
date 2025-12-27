@@ -1,0 +1,45 @@
+default_language_version:
+  python: python3.11
+
+repos:
+  # 1. Standard file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=10000']
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-case-conflict
+      - id: mixed-line-ending
+
+  # 2. Code Formatter (Black)
+  - repo: https://github.com/psf/black
+    rev: 25.12.0
+    hooks:
+      - id: black
+
+  # 3. Import Sorter (Isort) - Configured to match Black
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  # 4. Linter (Flake8)
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        # E203: Whitespace before ':'
+        # E501: Line too long
+        # W503: Line break before binary operator
+        args: ["--ignore=E203,E501,W503"]
+
+  # 5. Non-Python Formatter (Prettier)
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [markdown, yaml, toml]
