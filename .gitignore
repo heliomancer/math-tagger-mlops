@@ -37,7 +37,7 @@ ENV/
 
 # --- MLOps & Data ---
 # Data
-data/
+#data/
 *.csv
 *.json
 *.parquet
