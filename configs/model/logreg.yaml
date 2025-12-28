@@ -1,0 +1,8 @@
+name: "logistic_regression_baseline"
+
+# TF-IDF Vectorizer parameters
+max_features: 2000
+
+# Optimizer parameters
+lr: 0.01
+weight_decay: 0.0

@@ -1,0 +1,10 @@
+# Defaults
+defaults:
+  - _self_
+  - data: math_dataset
+  - model: logreg
+  - train: default
+
+# Global settings
+project_name: "math-tagger-mlops"
+seed: 99

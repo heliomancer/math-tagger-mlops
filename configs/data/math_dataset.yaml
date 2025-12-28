@@ -1,0 +1,21 @@
+# HuggingFace Dataset Path
+dataset_path: "EleutherAI/hendrycks_math"
+
+# The subsets we want to download/use
+subsets:
+  - "algebra"
+  - "geometry"
+  - "precalculus"
+  - "intermediate_algebra"
+  - "number_theory"
+  - "prealgebra"
+  - "counting_and_probability"
+
+# Local paths
+data_dir: "data/raw"
+train_file: "train.csv"
+test_file: "test.csv"
+
+# Dataloader settings
+batch_size: 64
+num_workers: 2

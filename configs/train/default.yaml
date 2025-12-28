@@ -1,0 +1,10 @@
+# How long to train
+max_epochs: 5000
+
+# Early Stopping
+patience: 10
+monitor_metric: "val_loss"
+
+# Device
+accelerator: "auto"
+devices: 1
