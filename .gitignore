@@ -62,11 +62,14 @@ multirun/
 
 # MLflow
 mlruns/
+mlartifacts/
+mlflow.db
 
 # DVC
 .dvc/cache
 .dvc/tmp
 dvc_storage/
+
 
 # --- Logs & Plots ---
 logs/
@@ -78,3 +81,13 @@ plots/*
 .mypy_cache/
 .coverage
 htmlcov/
+
+# Prettier / Node artifacts
+node_modules/
+package-lock.json
+package.json
+
+# Exceptions
+!uv.lock
+
+

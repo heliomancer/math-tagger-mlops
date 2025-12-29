@@ -17,5 +17,5 @@ train_file: "train.csv"
 test_file: "test.csv"
 
 # Dataloader settings
-batch_size: 64
+batch_size: 512
 num_workers: 2

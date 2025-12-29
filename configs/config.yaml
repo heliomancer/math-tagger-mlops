@@ -8,3 +8,9 @@ defaults:
 # Global settings
 project_name: "math-tagger-mlops"
 seed: 99
+mode: "train" # for command menu
+
+# MLflow settings
+mlflow:
+  experiment_name: ${project_name}
+  tracking_uri: "http://127.0.0.1:8080"

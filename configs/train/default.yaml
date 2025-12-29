@@ -1,10 +1,11 @@
 # How long to train
-max_epochs: 5000
+max_epochs: 100
 
 # Early Stopping
 patience: 10
 monitor_metric: "val_loss"
 
 # Device
-accelerator: "auto"
+# accelerator: "auto"
+accelerator: "cpu"
 devices: 1

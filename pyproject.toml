@@ -15,6 +15,9 @@ dependencies = [
     "lightning>=2.6.0",
     "mlflow>=3.8.1",
     "numpy>=2.4.0",
+    "onnx>=1.20.0",
+    "onnxruntime>=1.23.2",
+    "onnxscript>=0.5.7",
     "pandas>=2.3.3",
     "scikit-learn>=1.8.0",
     "torch>=2.9.1",
@@ -25,7 +28,7 @@ dependencies = [
 packages = ["src/math_classifier"]
 
 [project.scripts]
-math-tagger-mlops = "math_classifier:main"
+math-tagger-mlops = "math_classifier.commands:main"
 
 
 [build-system]
