@@ -4,6 +4,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 import torch
 import hydra
 from omegaconf import DictConfig
+import mlflow
 
 from math_classifier.datamodule import MathDataModule
 from math_classifier.model import MathClassifier
@@ -82,7 +83,7 @@ def train(cfg: DictConfig):
     trainer.test(model, datamodule=dm, ckpt_path="best")
     print("="*40 + "\n")
     
-    # 7. Production: Export to ONNX
+    # 7. Export to ONNX
     # We need a dummy input sample to trace the graph
     print("Exporting to ONNX...")
     model.eval()
@@ -100,3 +101,26 @@ def train(cfg: DictConfig):
         dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
     )
     print(f"ONNX model saved to {onnx_path}")
+
+    # 8. Logging artifacts to MLflow    
+    print("Logging serving artifacts to MLflow...")
+    # Load the best model weights
+    best_model = MathClassifier.load_from_checkpoint(checkpoint_callback.best_model_path)
+
+    # Log using the active run ID from the logger
+    # We use the existing run context created by Lightning
+    with mlflow.start_run(run_id=mlf_logger.run_id): # Log the PyTorch model
+        signature = mlflow.models.infer_signature(dummy_input.numpy(), model(dummy_input).detach().numpy())
+        # Create the signature using the dummy input we made for ONNX
+        # dummy_input is the torch tensor of size (1, 2000)
+        # We need to convert it to numpy for the signature
+        mlflow.pytorch.log_model(best_model, "model", signature=signature)
+
+        # Log the ONNX version too (optional, but good practice)
+        mlflow.log_artifact("models/model.onnx", "model_onnx")
+
+        # Log the preprocessors (CRITICAL for reproducibility)
+        mlflow.log_artifact("models/vectorizer.joblib", "preprocessor")
+        mlflow.log_artifact("models/label2idx.joblib", "preprocessor")
+
+    print("MLflow artifacts logged successfully.")
