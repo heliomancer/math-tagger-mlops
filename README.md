@@ -62,9 +62,12 @@ All project commands are unified under a single entry point managed by Hydra con
 ### 1. Training
 Run the training pipeline. This includes data loading, TF-IDF vectorization, and PyTorch Lightning training.
 
+
 ```bash
 uv run math-tagger-mlops mode=train
 ```
+
+Training takes roughly 1-2 minutes for init and around 1 minute for training (on CPUs)
 
 *   **Customizing Hyperparameters:** You can override any config value via CLI.
     ```bash
@@ -88,20 +91,21 @@ The training pipeline automatically exports the best model to ONNX format at the
 
 ## 📡 Serving (MLflow)
 
-The project includes an inference server using MLflow.
+The project automatically registers and versions models in the MLflow Model Registry. The best model from the latest training run is automatically promoted to the `Production` stage.
 
 1.  **Start the MLflow Server:**
-    You need the Run ID of your best training run (found in `mlruns` or the console output after training).
+    For simplicity we serve the current **Production** model:
     ```bash
-    # Replace <RUN_ID> with your actual ID
     export MLFLOW_TRACKING_URI=http://127.0.0.1:8080
-    uv run mlflow models serve -m runs:/<RUN_ID>/model -p 5000 --no-conda
+    uv run mlflow models serve -m "models:/MathTagger/Production" -p 5000 --no-conda
     ```
 
+    Server takes arount 1-2 minutes to initialize.
+
 2.  **Send Requests:**
-    *Note: The current server implementation expects pre-vectorized inputs (TF-IDF features).*
+    *Note: The current server implementation expects pre-vectorized inputs (TF-IDF features). The client must handle text-to-vector conversion using the saved artifacts.*
     
-    You can use the provided check script to verify the server is running:
+    You can use the provided check script (which handles vectorization locally) to verify the server is working:
     ```bash
     uv run python server_check.py
     ```
