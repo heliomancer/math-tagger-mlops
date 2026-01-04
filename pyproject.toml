@@ -1,7 +1,7 @@
 [project]
 name = "math-tagger-mlops"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Multilabel classification of mathematics problems using PyTorch and MLOps tools"
 readme = "README.md"
 authors = [
     { name = "Ilya E", email = "elushoviv@gmail.com" }

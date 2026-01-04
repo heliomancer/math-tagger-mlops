@@ -6,6 +6,7 @@ import hydra
 from omegaconf import DictConfig
 import mlflow
 
+
 from math_classifier.datamodule import MathDataModule
 from math_classifier.model import MathClassifier
 
@@ -42,6 +43,7 @@ def train(cfg: DictConfig):
         tracking_uri=cfg.mlflow.tracking_uri,
         log_model=True
     )
+
     
     # Checkpointing: Save the best model based on Validation F1
     checkpoint_callback = ModelCheckpoint(
@@ -107,14 +109,12 @@ def train(cfg: DictConfig):
     # Load the best model weights
     best_model = MathClassifier.load_from_checkpoint(checkpoint_callback.best_model_path)
 
-    # Log using the active run ID from the logger
-    # We use the existing run context created by Lightning
+    # Use the existing run context created by Lightning
     with mlflow.start_run(run_id=mlf_logger.run_id): # Log the PyTorch model
         signature = mlflow.models.infer_signature(dummy_input.numpy(), model(dummy_input).detach().numpy())
         # Create the signature using the dummy input we made for ONNX
-        # dummy_input is the torch tensor of size (1, 2000)
-        # We need to convert it to numpy for the signature
-        mlflow.pytorch.log_model(best_model, "model", signature=signature)
+        # dummy_input is the torch tensor of size (1, 2000) in numpy
+        mlflow.pytorch.log_model(best_model, "model", signature=signature, registered_model_name="MathTagger")
 
         # Log the ONNX version too (optional, but good practice)
         mlflow.log_artifact("models/model.onnx", "model_onnx")
@@ -122,5 +122,18 @@ def train(cfg: DictConfig):
         # Log the preprocessors (CRITICAL for reproducibility)
         mlflow.log_artifact("models/vectorizer.joblib", "preprocessor")
         mlflow.log_artifact("models/label2idx.joblib", "preprocessor")
+
+        # Auto-Promote to Production
+        client = mlflow.tracking.MlflowClient()
+        # Get the version we just created
+        latest_version = client.get_latest_versions("MathTagger", stages=["None"])[0].version
+        
+        client.transition_model_version_stage(
+            name="MathTagger",
+            version=latest_version,
+            stage="Production",
+            archive_existing_versions=True # demotes the old production model automatically
+        )
+        print(f"Model MathTagger version {latest_version} promoted to Production.")
 
     print("MLflow artifacts logged successfully.")
