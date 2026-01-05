@@ -60,6 +60,5 @@ class MathClassifier(L.LightningModule):
         return self._shared_eval_step(batch, batch_idx, "val")
         
     def test_step(self, batch, batch_idx):
-        # This is what runs when we call trainer.test()
         return self._shared_eval_step(batch, batch_idx, "test")
 

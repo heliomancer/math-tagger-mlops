@@ -1,21 +1,17 @@
 import requests
-import joblib
-import numpy as np
+import json
 
-# Load the vectorizer used during training
-vectorizer = joblib.load("models/vectorizer.joblib")
-
-text = "Find the area of a triangle between points (1,1) (2,0) (3,4)"
-vector_input = vectorizer.transform([text]).toarray().tolist() # Convert to list for JSON
+# New Input Format: Raw Text wrapped in "inputs"
+data = {
+    "inputs": ["Find the derivative of 2x + 5.", "Solve for x: 3x = 9"]
+}
 
 url = "http://127.0.0.1:5000/invocations"
+headers = {"Content-Type": "application/json"}
 
 try:
-    response = requests.post(url, json={"inputs": vector_input})
-    print("Status Code:", response.status_code)
-    print("Response:", response.json())
+    response = requests.post(url, json=data, headers=headers)
+    print("Status:", response.status_code)
+    print("Response:", json.dumps(response.json(), indent=2))
 except Exception as e:
-    print("Connection failed:", e)
-
-
-print(response.json())
+    print(f"Error: {e}")

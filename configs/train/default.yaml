@@ -9,3 +9,6 @@ monitor_metric: "val_loss"
 # accelerator: "auto"
 accelerator: "cpu"
 devices: 1
+
+# Signature
+input_example: "Calculate the derivative of $x^2 + 4x$."

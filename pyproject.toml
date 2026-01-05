@@ -1,6 +1,6 @@
 [project]
 name = "math-tagger-mlops"
-version = "1.0.0"
+version = "1.0.1"
 description = "Multilabel classification of mathematics problems using PyTorch and MLOps tools"
 readme = "README.md"
 authors = [

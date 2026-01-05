@@ -3,49 +3,39 @@ from lightning.pytorch.loggers import MLFlowLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 import torch
 import hydra
+import os
 from omegaconf import DictConfig
 import mlflow
-
-
+from mlflow.tracking import MlflowClient
 from math_classifier.datamodule import MathDataModule
 from math_classifier.model import MathClassifier
+from math_classifier.inference_pipeline import MathTaggerPipeline
+import onnxruntime as ort
+import os
 
 def train(cfg: DictConfig):
     # 1. Reproducibility
     L.seed_everything(cfg.seed)
 
     # 2. Data Setup
-    # We init the datamodule and call setup() manually to get the vocab size
     print("Initializing DataModule...")
     dm = MathDataModule(cfg.data, cfg.model)
     dm.setup() 
     
-    # Calculate dimensions for the model
-    # TF-IDF vocab size
     input_dim = len(dm.vectorizer.vocabulary_)
-    # Number of unique labels
     num_classes = len(dm.label2idx)
-    
     print(f"Data ready. Input Dim: {input_dim}, Classes: {num_classes}")
 
     # 3. Model Setup
-    model = MathClassifier(
-        input_dim=input_dim, 
-        num_classes=num_classes,
-        lr=cfg.model.lr
-    )
+    model = MathClassifier(input_dim=input_dim, num_classes=num_classes, lr=cfg.model.lr)
 
-    # 4. Callbacks & Loggers
-    
-    # MLflow Logger
+    # 4. Logger & Callbacks
     mlf_logger = MLFlowLogger(
         experiment_name=cfg.mlflow.experiment_name,
         tracking_uri=cfg.mlflow.tracking_uri,
-        log_model=True
+        log_model=False 
     )
 
-    
-    # Checkpointing: Save the best model based on Validation F1
     checkpoint_callback = ModelCheckpoint(
         dirpath="models/checkpoints",
         filename="best-checkpoint",
@@ -54,7 +44,6 @@ def train(cfg: DictConfig):
         save_top_k=1
     )
     
-    # Early Stopping: Stop if loss doesn't improve
     early_stop_callback = EarlyStopping(
         monitor=cfg.train.monitor_metric,
         patience=cfg.train.patience,
@@ -74,66 +63,83 @@ def train(cfg: DictConfig):
     # 6. Start Training
     print("Starting training...")
     trainer.fit(model, datamodule=dm)
-    
     print(f"Best model saved at: {checkpoint_callback.best_model_path}")
     
-    # --- NEW: Run Test Set on Best Model ---
-    print("\n" + "="*40)
+    # 7. Test
     print("FINAL EVALUATION ON TEST SET")
-    print("="*40)
-    # This automatically loads the best checkpoint
     trainer.test(model, datamodule=dm, ckpt_path="best")
-    print("="*40 + "\n")
     
-    # 7. Export to ONNX
-    # We need a dummy input sample to trace the graph
+    # 8. Export to ONNX
     print("Exporting to ONNX...")
     model.eval()
+    model.to("cpu")
     
-    # Create a dummy input matching the TF-IDF vector size
+    onnx_dir = "models/onnx_export"
+    os.makedirs(onnx_dir, exist_ok=True)
+    onnx_path = os.path.join(onnx_dir, "model.onnx")
+    
     dummy_input = torch.randn(1, input_dim)
     
-    onnx_path = "models/model.onnx"
-    model.to_onnx(
-        onnx_path, 
-        dummy_input, 
+    torch.onnx.export(
+        model,
+        dummy_input,
+        onnx_path,
         export_params=True,
         input_names=["input"],
         output_names=["output"],
-        dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
+        dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        opset_version=14 
     )
-    print(f"ONNX model saved to {onnx_path}")
+    print(f"ONNX model saved to {onnx_dir}")
 
-    # 8. Logging artifacts to MLflow    
-    print("Logging serving artifacts to MLflow...")
-    # Load the best model weights
-    best_model = MathClassifier.load_from_checkpoint(checkpoint_callback.best_model_path)
+    # 9. Logging Pipeline to MLflow
+    print("Logging Pipeline to MLflow...")
+    
+    artifacts = {
+        "vectorizer": "models/vectorizer.joblib",
+        "label_map": "models/label2idx.joblib",
+        "onnx_model": onnx_dir 
+    }
 
-    # Use the existing run context created by Lightning
-    with mlflow.start_run(run_id=mlf_logger.run_id): # Log the PyTorch model
-        signature = mlflow.models.infer_signature(dummy_input.numpy(), model(dummy_input).detach().numpy())
-        # Create the signature using the dummy input we made for ONNX
-        # dummy_input is the torch tensor of size (1, 2000) in numpy
-        mlflow.pytorch.log_model(best_model, "model", signature=signature, registered_model_name="MathTagger")
+    input_text = cfg.train.input_example
 
-        # Log the ONNX version too (optional, but good practice)
-        mlflow.log_artifact("models/model.onnx", "model_onnx")
+    # run temporary session to calculate predicted result
+    temp_pipeline = MathTaggerPipeline()
+    temp_pipeline.vectorizer = dm.vectorizer
+    temp_pipeline.label2idx = dm.label2idx
+    temp_pipeline.idx2label = {v: k for k, v in dm.label2idx.items()}
+    temp_pipeline.ort_session = ort.InferenceSession(os.path.join(onnx_dir, "model.onnx"))
+    
+    prediction_result = temp_pipeline.predict(context=None, model_input=[input_text])
 
-        # Log the preprocessors (CRITICAL for reproducibility)
-        mlflow.log_artifact("models/vectorizer.joblib", "preprocessor")
-        mlflow.log_artifact("models/label2idx.joblib", "preprocessor")
+    signature = mlflow.models.infer_signature(
+        model_input=[input_text], 
+        model_output=prediction_result
+    )
 
-        # Auto-Promote to Production
-        client = mlflow.tracking.MlflowClient()
-        # Get the version we just created
-        latest_version = client.get_latest_versions("MathTagger", stages=["None"])[0].version
+    with mlflow.start_run(run_id=mlf_logger.run_id):
+        mlflow.pyfunc.log_model(
+            artifact_path="model",
+            python_model=MathTaggerPipeline(),
+            artifacts=artifacts,
+            signature=signature,
+            input_example=[input_text],
+            registered_model_name="MathTagger"
+        )
         
+        # Auto-Promote
+        client = MlflowClient()
+        latest_version = client.get_latest_versions("MathTagger", stages=["None"])[0].version
         client.transition_model_version_stage(
             name="MathTagger",
             version=latest_version,
             stage="Production",
-            archive_existing_versions=True # demotes the old production model automatically
+            archive_existing_versions=True
         )
-        print(f"Model MathTagger version {latest_version} promoted to Production.")
+        print(f"Pipeline registered as MathTagger version {latest_version} (Production)")
 
-    print("MLflow artifacts logged successfully.")
+    print("Training and Logging Complete.")
+
+
+
+
