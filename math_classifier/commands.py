@@ -8,7 +8,7 @@ from math_classifier.data_local import download_data
 
 log = logging.getLogger(__name__)
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="config")
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     
     mode = cfg.get("mode", "train")

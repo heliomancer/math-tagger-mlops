@@ -55,7 +55,7 @@ The main goal is to classify mathematics problems into one or more categories ba
 This project uses DVC for data versioning. However, for ease of reproduction without shared cloud storage credentials, a download script is provided to fetch the dataset from HuggingFace.
 
 ```bash
-uv run python src/math_classifier/commands.py mode=download
+uv run python math_classifier/commands.py mode=download
 ```
 
 ---
@@ -68,14 +68,14 @@ All project commands are unified under a single entry point managed by Hydra con
 Run the training pipeline. This includes data loading, TF-IDF vectorization, PyTorch Lightning training, ONNX export, and **automatic Model Registry promotion**.
 
 ```bash
-uv run python src/math_classifier/commands.py mode=train
+uv run python math_classifier/commands.py mode=train
 ```
 *Training takes roughly 1-2 minutes for init and around 1 minute for training (on CPUs).*
 
 *   **Customizing Hyperparameters:** You can override any config value via CLI.
     ```bash
     # Example: Change learning rate and max epochs
-    uv run python src/math_classifier/commands.py mode=train model.lr=0.005 train.max_epochs=50
+    uv run python math_classifier/commands.py mode=train model.lr=0.005 train.max_epochs=50
     ```
 
 ### 2. Inference (CLI)
@@ -83,7 +83,7 @@ Run predictions on custom text input directly from the command line.
 This command automatically downloads the **Production** model pipeline from MLflow.
 
 ```bash
-uv run python src/math_classifier/commands.py mode=infer input_text="Find the area of a circle with radius 5"
+uv run python math_classifier/commands.py mode=infer input_text="Find the area of a circle with radius 5"
 ```
 
 ### 3. Architecture & Artifacts
@@ -127,14 +127,13 @@ The project automatically registers and versions models in the MLflow Model Regi
 │   └── train/             # Trainer settings
 ├── data/                  # Data storage (gitignored)
 ├── models/                # Local artifact storage (staging)
-├── src/
-│   └── math_classifier/
-│       ├── commands.py            # Main CLI entry point
-│       ├── datamodule.py          # Lightning DataModule
-│       ├── model.py               # Lightning Module (Neural Network)
-│       ├── inference_pipeline.py  # Custom PyFunc Wrapper (The "Production" Model)
-│       ├── train.py               # Training & Registration logic
-│       └── infer.py               # CLI Inference Client
+├── math_classifier/
+│   ├── commands.py            # Main CLI entry point
+│   ├── datamodule.py          # Lightning DataModule
+│   ├── model.py               # Lightning Module (Neural Network)
+│   ├── inference_pipeline.py  # Custom PyFunc Wrapper (The "Production" Model)
+│   ├── train.py               # Training & Registration logic
+│   └── infer.py               # CLI Inference Client
 ├── pyproject.toml         # Dependencies and project metadata
 └── uv.lock                # Pinned dependencies
 ```
