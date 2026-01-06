@@ -16,6 +16,9 @@ data_dir: "data/raw"
 train_file: "train.csv"
 test_file: "test.csv"
 
+# Validation splitting
+val_frac: 0.16
+
 # Dataloader settings
 batch_size: 512
 num_workers: 2

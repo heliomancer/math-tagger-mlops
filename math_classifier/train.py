@@ -19,7 +19,7 @@ def train(cfg: DictConfig):
 
     # 2. Data Setup
     print("Initializing DataModule...")
-    dm = MathDataModule(cfg.data, cfg.model)
+    dm = MathDataModule(cfg.data, cfg.model, seed=cfg.seed)
     dm.setup() 
     
     input_dim = len(dm.vectorizer.vocabulary_)

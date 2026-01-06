@@ -6,12 +6,14 @@ import joblib
 import lightning as L
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
 
 class MathDataModule(L.LightningDataModule):
-    def __init__(self, data_cfg, model_cfg):
+    def __init__(self, data_cfg, model_cfg, seed=99):
         super().__init__()
         self.data_cfg = data_cfg
         self.model_cfg = model_cfg
+        self.seed = seed 
         
         # Paths
         self.train_path = os.path.join(data_cfg.data_dir, data_cfg.train_file)
@@ -22,49 +24,63 @@ class MathDataModule(L.LightningDataModule):
         self.label2idx = None
         self.train_dataset = None
         self.val_dataset = None
+        self.test_dataset = None
 
     def setup(self, stage=None):
         # 1. Load Data
         if not os.path.exists(self.train_path):
-            raise FileNotFoundError(f"Data not found at {self.train_path}. Use data_local.py!")
+            raise FileNotFoundError(f"Data not found at {self.train_path}. Use math_classifier/commands.py mode=download!")
             
-        train_df = pd.read_csv(self.train_path)
+        full_train_df = pd.read_csv(self.train_path)
         test_df = pd.read_csv(self.test_path)
+
+        print(f"Loaded {len(full_train_df)} raw training samples and {len(test_df)} test samples.")
         
-        # 2. Fit Preprocessors (only on train data!)
-        print("Fitting TF-IDF Vectorizer...")
+        # 2. Split Train into Train/Val
+        # We use a fixed seed from config so this split is identical every run
+        train_df, val_df = train_test_split(
+            full_train_df, 
+            test_size=self.data_cfg.val_frac, 
+            random_state=self.seed,
+            stratify=full_train_df['type'] # Good practice: keep label distribution similar
+        )
+        
+        print(f"Splitting Train: {len(train_df)} Training, {len(val_df)} Validation.")
+        
+        # 3. Fit Preprocessors (Only on the reduced Train split!)
+        # Prevents information leakage from validation set
+        print("Fitting TF-IDF Vectorizer on Training split...")
         self.vectorizer = TfidfVectorizer(max_features=self.model_cfg.max_features, stop_words='english')
-        X_train_raw = self.vectorizer.fit_transform(train_df['problem']).toarray()
         
-        # 3. Handle Labels
+        X_train = self.vectorizer.fit_transform(train_df['problem']).toarray()
+        X_val = self.vectorizer.transform(val_df['problem']).toarray()
+        X_test = self.vectorizer.transform(test_df['problem']).toarray()
+        
+        # 4. Handle Labels
         print("Encoding Labels...")
-        unique_labels = sorted(train_df['type'].unique())
+        # We determine unique labels from the FULL training set to be safe
+        unique_labels = sorted(full_train_df['type'].unique())
         self.label2idx = {label: i for i, label in enumerate(unique_labels)}
         
-        # Helper to convert labels to one-hot vectors
         def encode_labels(df):
             y = torch.zeros((len(df), len(unique_labels)))
-            for i, row in df.iterrows():
-                if row['type'] in self.label2idx:
-                    y[i, self.label2idx[row['type']]] = 1.0
+            # FIX: Use enumerate to generate a new 0-based index 'i'
+            # We ignore 'original_index' coming from iterrows
+            for i, (original_index, row) in enumerate(df.iterrows()):
+                label_name = row['type']
+                if label_name in self.label2idx:
+                    y[i, self.label2idx[label_name]] = 1.0
             return y
 
         y_train = encode_labels(train_df)
-        
-        # 4. Process Validation/Test Data
-        # Note: We transform using the fitted vectorizer (no fitting here)
-        X_test_raw = self.vectorizer.transform(test_df['problem']).toarray()
+        y_val = encode_labels(val_df)
         y_test = encode_labels(test_df)
         
+        
         # 5. Convert to PyTorch Tensors
-        self.train_dataset = TensorDataset(
-            torch.tensor(X_train_raw, dtype=torch.float32), 
-            y_train
-        )
-        self.val_dataset = TensorDataset(
-            torch.tensor(X_test_raw, dtype=torch.float32), 
-            y_test
-        )
+        self.train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32), y_train)
+        self.val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32), y_val)
+        self.test_dataset = TensorDataset(torch.tensor(X_test, dtype=torch.float32), y_test)
         
         # 6. Save Artifacts for Inference
         os.makedirs("models", exist_ok=True)
@@ -91,7 +107,7 @@ class MathDataModule(L.LightningDataModule):
     def test_dataloader(self):
         # repeats val step
         return DataLoader(
-            self.val_dataset, 
+            self.test_dataset, 
             batch_size=self.data_cfg.batch_size, 
             shuffle=False, 
             num_workers=self.data_cfg.num_workers
