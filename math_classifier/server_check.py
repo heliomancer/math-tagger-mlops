@@ -1,10 +1,9 @@
-import requests
 import json
 
+import requests
+
 # New Input Format: Raw Text wrapped in "inputs"
-data = {
-    "inputs": ["Find the derivative of 2x + 5.", "Solve for x: 3x = 9"]
-}
+data = {"inputs": ["Find the derivative of 2x + 5.", "Solve for x: 3x = 9"]}
 
 url = "http://127.0.0.1:5000/invocations"
 headers = {"Content-Type": "application/json"}

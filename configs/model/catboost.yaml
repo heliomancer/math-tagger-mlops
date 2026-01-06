@@ -1,0 +1,10 @@
+type: "catboost"
+name: "catboost_gradient_boosting"
+iterations: 500
+depth: 6
+learning_rate: 0.1
+text_processing:
+  - "tokenizers=Space"
+  - "dictionaries=Word"
+eval_metric: "TotalF1"  # Options: Accuracy, TotalF1, MultiClass
+threshold: 0.5

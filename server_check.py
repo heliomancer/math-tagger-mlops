@@ -4,9 +4,7 @@ import requests
 # The model expects a vector of size 2000 (from your config max_features=2000)
 # We create a dummy vector of all zeros just to test the connection.
 vocab_size = 2000
-input_data = {
-    "inputs": [[0.0] * vocab_size]
-}
+input_data = {"inputs": [[0.0] * vocab_size]}
 
 # 2. Send the request
 url = "http://127.0.0.1:5000/invocations"
