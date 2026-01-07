@@ -70,6 +70,9 @@ mlflow.db
 .dvc/tmp
 dvc_storage/
 
+# CatBoost
+catboost_info/
+
 
 # --- Logs & Plots ---
 logs/

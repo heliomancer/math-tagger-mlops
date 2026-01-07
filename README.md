@@ -59,6 +59,15 @@ The main goal is to classify mathematics problems into one or more categories ba
     uv run pre-commit install
     ```
 
+4.  **Start Experiment Tracker (Crucial):**
+    ⚠️ **Important:** You must have the MLflow server running *before* executing training or inference commands, or the connection will be refused.
+    
+    Open a separate terminal and run:
+    ```bash
+    uv run mlflow ui --host 127.0.0.1 --port 8080
+    ```
+    *Keep this terminal open while working with the project.*
+
 ### Data Management
 
 This project uses DVC for data versioning. However, for ease of reproduction without shared cloud storage credentials, a download script is provided to fetch the dataset from HuggingFace.
@@ -72,6 +81,8 @@ uv run python math_classifier/commands.py mode=download
 ## 🚀 Training Pipeline
 
 The project uses **Hydra** for configuration management. You can switch between different model backends easily. All training runs automatically register the model to MLflow and promote the best result to **Production**.
+
+> **Note:** Ensure your MLflow server is running at `http://127.0.0.1:8080` before starting training.
 
 ### Option A: PyTorch Baseline (Logistic Regression)
 
@@ -164,6 +175,7 @@ The project follows a flat-layout structure with clear separation of concerns.
 │   ├── train.py               # Dispatcher (Selects trainer based on config)
 │   └── infer.py               # CLI Inference Client
 ├── models/                # Local artifact staging
+├── plots/                 # Training visualizations (Loss curves, logs)
 ├── pyproject.toml         # Dependencies
 └── uv.lock                # Locked dependencies
 ```

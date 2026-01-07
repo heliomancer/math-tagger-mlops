@@ -118,7 +118,6 @@ def train_catboost(cfg: DictConfig):
         mlflow.log_param("threshold", cfg.model.get("threshold", 0.5))
 
         # Log Learning Curves (History) from catboost: train and validation
-
         evals_result = model.get_evals_result()
 
         for metric_name, values in evals_result['learn'].items():

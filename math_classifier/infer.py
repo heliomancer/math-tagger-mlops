@@ -2,6 +2,7 @@ import mlflow
 
 
 def infer(cfg):
+    mlflow.set_tracking_uri(cfg.mlflow.tracking_uri)
     input_text = cfg.get("input_text", "Calculate the area of a circle.")
     runtime_threshold = cfg.model.get("threshold", 0.5)
 
