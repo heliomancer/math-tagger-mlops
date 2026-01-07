@@ -73,7 +73,7 @@ dvc_storage/
 
 # --- Logs & Plots ---
 logs/
-plots/*
+#plots/*
 !plots/.gitkeep
 
 # --- Testing & Quality ---
